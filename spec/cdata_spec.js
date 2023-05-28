@@ -1,19 +1,16 @@
 "use strict";
 
-const {XMLParser, XMLBuilder, XMLValidator} = require("../src/fxp");
+const parser = require("../src/parser");
+const validator = require("../src/validator");
 
 describe("XMLParser", function() {
     it("should parse multiline tag value when tags without spaces", function() {
-        const xmlData = `<root><person>lastname
+        const xmlData = `<?xml version='1.0'?><root><person>lastname
 firstname
 patronymic</person></root>`;
-
-
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         const expected = {
             "root": {
@@ -23,11 +20,11 @@ patronymic</person></root>`;
 
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
     });
     it("should parse tag having CDATA", function() {
-        const xmlData = `
+        const xmlData = `<?xml version='1.0'?>
 <any_name>
     <person>
         <phone>+122233344550</phone>
@@ -54,107 +51,16 @@ patronymic</person></root>`;
                 }
             }
         };
-
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         //console.log(JSON.stringify(result,null,4));
 
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
-    });
-
-    it("should build XML with CDATA for repeated values without parseOrder", function() {
-        const input = {
-            "any_name": {
-                "person": {
-                    "phone": [
-                        122233344550,
-                        122233344551,
-                        ""
-                    ],
-                    "name":  [
-                        `<some>Jack</some>Jack`,
-                        `<some>Mohan</some>`
-                    ],
-                    "blank": "",
-                    "regx":  "^[ ].*$"
-                }
-            }
-        };
-        const expected = `
-        <any_name>
-            <person>
-                <![CDATA[122233344550]]>
-                <![CDATA[122233344551]]>
-                <![CDATA[]]>
-                <name><some>Jack</some>Jack</name>
-                <name><some>Mohan</some></name>
-                <blank></blank>
-                <regx>^[ ].*$</regx>
-            </person>
-        </any_name>`;
-        
-        const options = {
-            processEntities:false,
-            format: true,
-            ignoreAttributes: false,
-            cdataPropName: "phone"
-        };
-
-        const builder = new XMLBuilder(options);
-        const xmlOutput = builder.build(input);
-        // console.log(xmlOutput);
-        expect(xmlOutput.replace(/\s+/g, "")).toEqual(expected.replace(/\s+/g, ""));
-    });
-    
-    it("should build XML with CDATA for single value without parseOrder", function() {
-        const input = {
-            "any_name": {
-                "person": {
-                    "phone": [
-                        122233344550,
-                        122233344551,
-                        ""
-                    ],
-                    "name":  [
-                        `<some>Jack</some>Jack`,
-                        `<some>Mohan</some>`
-                    ],
-                    "blank": "",
-                    "regx":  "^[ ].*$"
-                }
-            }
-        };
-        const expected = `
-        <any_name>
-            <person>
-                <phone>122233344550</phone>
-                <phone>122233344551</phone>
-                <phone></phone>
-                <name><some>Jack</some>Jack</name>
-                <name><some>Mohan</some></name>
-                <blank></blank>
-                <![CDATA[^[ ].*$]]>
-            </person>
-        </any_name>`;
-        
-        const options = {
-            processEntities:false,
-            format: true,
-            ignoreAttributes: false,
-            cdataPropName: "regx"
-        };
-
-        const builder = new XMLBuilder(options);
-        const xmlOutput = builder.build(input);
-        // console.log(xmlOutput);
-        expect(xmlOutput.replace(/\s+/g, "")).toEqual(expected.replace(/\s+/g, ""));
     });
 
     it("should parse tag having CDATA 2", function() {
@@ -181,17 +87,13 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
-        
-        // console.log(JSON.stringify(result,null,4));
+        });
+
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
-
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
     });
 
@@ -212,16 +114,14 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
     });
 
@@ -234,15 +134,13 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
     });
 
@@ -255,15 +153,13 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
+        let result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         expect(result).toEqual(expected);
 
-        result = XMLValidator.validate(xmlData);
+        result = validator.validate(xmlData);
         expect(result).toBe(true);
     });
 
@@ -284,11 +180,9 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
+        const result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
         //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
@@ -311,14 +205,11 @@ patronymic</person></root>`;
             }
         };
 
-        
-        const options = {
+        const result = parser.parse(xmlData, {
             ignoreAttributes: false
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        });
 
-        // console.log(JSON.stringify(result,null,4));
+        //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
     });
 
@@ -337,24 +228,22 @@ patronymic</person></root>`;
                 },
                 "b": "text",
                 "c": {
-                    "#text":   "after",
+                    "#text":   "\\cafter",
                     "__cdata": "text"
                 },
                 "d": {
-                    "#text":   "2324",
+                    "#text":   "23\\c24",
                     "__cdata": ""
                 }
             }
         };
 
-        const options = {
+        const result = parser.parse(xmlData, {
             ignoreAttributes: false,
-            cdataPropName:     "__cdata"
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+            cdataTagName:     "__cdata"
+        });
 
-        // console.log(JSON.stringify(result,null,4));
+        //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
     });
 
@@ -383,12 +272,11 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
-            ignoreAttributes: false,
-            cdataPropName:     "__cdata"
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
+        const result = parser.parse(xmlData, {
+            ignoreAttributes:  false,
+            cdataTagName:      "__cdata",
+            cdataPositionChar: ""
+        });
 
         //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
@@ -401,10 +289,6 @@ patronymic</person></root>`;
         const xmlData = fs.readFileSync(fileNamePath).toString();
 
         const expected = {
-            "?xml": {
-                "@_version": "1.0",
-                "@_standalone": "yes"
-            },
             "ns:root": {
                 "ptag":         [
                     {
@@ -419,31 +303,11 @@ patronymic</person></root>`;
             }
         };
 
-        const options = {
-            ignoreAttributes: false,
+        const result = parser.parse(xmlData, {
+            ignoreAttributes:       false,
             allowBooleanAttributes: true
-        };
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
-        
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
-    });
-    
-    it("should parse CDATA with 0", function() {
-        const xmlData = `<a> <![CDATA[0]]> </a>`;
-
-        const expected = { a: { '##cdata': '0' } };
-
-        const options = {
-            cdataPropName: "##cdata",
-            // preserveOrder: true
-        };
-
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
-        
-        // console.log(JSON.stringify(result,null,4));
+        });
+        //console.log(JSON.stringify(result,null,4));
         expect(result).toEqual(expected);
     });
 });

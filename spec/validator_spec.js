@@ -2,26 +2,18 @@
 
 const fs = require("fs");
 const path = require("path");
-const {XMLParser, XMLValidator} = require("../src/fxp");
+const validator = require("../src/validator");
 
-function validate(xmlData, error, line = 1, col) {
-    const result = XMLValidator.validate(xmlData);
-    // console.log(result);
+function validate(xmlData, error, line = 1) {
+    const result = validator.validate(xmlData);
     if (error) {
 
         const keys = Object.keys(error);
         const expected = {
             code: keys[0],
             msg: error[keys[0]],
-            line,
-            col,
+            line
         };
-
-        // don't evaluate col if it is not set by the test case
-        if(col === undefined) {
-            delete expected.col;
-            delete result.err.col;
-        }
         expect(result.err).toEqual(expected);
     } else {
         expect(result).toBe(true);
@@ -33,7 +25,7 @@ function validateFile(fileName, ...args) {
     validate(fs.readFileSync(fileNamePath).toString(), ...args);
 }
 
-describe("XML Validator", function () {
+describe("XMLParser", function () {
     it("should validate simple xml string", function () {
         validate("<rootNode></rootNode>");
         validate(`<rootNode></rootNode     >`);
@@ -41,12 +33,14 @@ describe("XML Validator", function () {
 
     it("should not validate invalid starting tag", function () {
         validate("< rootNode></rootNode>", {
-            InvalidTag: "Invalid space after '<'."
+            InvalidTag: "There is an unnecessary space between tag name and backward slash '</ ..'."
         });
     });
 
     it("should not validate incomplete xml string", function () {
-        validate("<rootNode>", {InvalidTag: "Unclosed tag 'rootNode'."}, 1);
+        validate("<rootNode>", {
+            InvalidXml: "Invalid '[    \"rootNode\"]' found."
+        });
     });
 
     it("should not validate invalid starting tag for following characters", function () {
@@ -77,16 +71,16 @@ describe("XML Validator", function () {
 
     it("should not validate xml string when closing tag is different", function () {
         validate("<rootNode></rootnode>", {
-            InvalidTag: "Expected closing tag 'rootNode' (opened in line 1, col 1) instead of closing tag 'rootnode'."
+            InvalidTag: "Closing tag 'rootNode' is expected inplace of 'rootnode'."
         });
     });
 
     it("should not validate xml string when closing tag is invalid", function () {
         validate("<rootNode>< /rootnode>", {
-            InvalidTag: "Invalid space after '<'."
+            InvalidTag: "There is an unnecessary space between tag name and backward slash '</ ..'."
         });
         validate("<rootNode></ rootnode>", {
-            InvalidTag: "Invalid space after '<'."
+            InvalidTag: "There is an unnecessary space between tag name and backward slash '</ ..'."
         });
         validate("<rootNode></rootnode 123>", {
             InvalidTag: "Closing tag 'rootnode' can't have attributes or invalid starting."
@@ -99,7 +93,7 @@ describe("XML Validator", function () {
 
     it("should not validate xml string with namespace when closing tag is diffrent", function () {
         validate("<root:Node></root:node>", {
-            InvalidTag: "Expected closing tag 'root:Node' (opened in line 1, col 1) instead of closing tag 'root:node'."
+            InvalidTag: "Closing tag 'root:Node' is expected inplace of 'root:node'."
         });
     });
 
@@ -109,13 +103,13 @@ describe("XML Validator", function () {
 
     it("should not validate simple xml string with value but not matching closing tag", function () {
         validate("<root:Node>some value</root>", {
-            InvalidTag: "Expected closing tag 'root:Node' (opened in line 1, col 1) instead of closing tag 'root'."
+            InvalidTag: "Closing tag 'root:Node' is expected inplace of 'root'."
         });
     });
 
     it("should not validate simple xml string with value but no closing tag", function () {
         validate("<root:Node>some value", {
-            InvalidTag: "Unclosed tag 'root:Node'."
+            InvalidXml: "Invalid '[    \"root:Node\"]' found."
         });
     });
 
@@ -125,7 +119,7 @@ describe("XML Validator", function () {
 
     it("should not validate xml with wrongly nested tags", function () {
         validate("<rootNode><tag><tag1></tag>1</tag1><tag>val</tag></rootNode>", {
-            InvalidTag: "Expected closing tag 'tag1' (opened in line 1, col 16) instead of closing tag 'tag'."
+            InvalidTag: "Closing tag 'tag1' is expected inplace of 'tag'."
         });
     });
 
@@ -160,12 +154,13 @@ describe("XML Validator", function () {
 
     it("should not validate xml with non closing comment", function () {
         validate("<rootNode ><!-- <tag> -- <tag>1</tag><tag>val</tag></rootNode>", {
-            InvalidTag: "Unclosed tag 'rootNode'."}, 1);
+            InvalidXml: "Invalid '[    \"rootNode\"]' found."
+        });
     });
 
     it("should not validate xml with unclosed tag", function () {
         validate("<rootNode  abc='123' bc='567'", {
-            InvalidTag: "Unclosed tag 'rootNode'."
+            InvalidXml: "Invalid '[    \"rootNode\"]' found."
         });
     });
 
@@ -220,8 +215,8 @@ describe("XML Validator", function () {
 
     it("should return false for invalid xml", function () {
         validateFile("invalid.xml", {
-            InvalidTag: "Expected closing tag 'selfclosing' (opened in line 11, col 2) instead of closing tag 'person'."
-        }, 27, 5);
+            InvalidTag: "Closing tag 'selfclosing' is expected inplace of 'person'."
+        }, 27);
     });
 
     it("should return true for valid svg", function () {
@@ -345,7 +340,7 @@ attribute2="attribute2"
         t>
     </urlset>`, {
             InvalidAttr: "boolean attribute 't' is not allowed."
-       }, 5, 9);
+        }, 5);
     });
 
     it('should validate value with ampersand', function () {
@@ -389,76 +384,4 @@ describe("should not validate XML documents with multiple root nodes", () => {
             InvalidXml: 'Multiple possible root nodes found.'
         }, 5);
     });
-});
-
-describe("should report correct line numbers for unclosed tags", () => {
-
-    it('- child tag', () =>
-        validate(`<parent>
-                    <childA/>
-                    <childB>  <!-- error: should be self-closing -->
-                    <childC/>
-                  </parent>`,
-                 {InvalidTag: "Expected closing tag 'childB' (opened in line 3, col 21) instead of closing tag 'parent'."}, 5, 19));
-
-    it('- root tag', () =>
-        validate(`             <!-- line 1 -->
-                               <!-- line 2 -->
-                    <parent>   <!-- line 3  error: not closed -->
-                      <childA/>
-                    <childB/>`,
-                 {InvalidTag: "Unclosed tag 'parent'."}, 3, 21));
-
-    it('- incorrect close tag', () =>
-        validate(`<parent>
-                    <child>
-                       <self/>
-                    </incorrect>
-                    <empty/>
-                  <parent>`,
-                 {InvalidTag: "Expected closing tag 'child' (opened in line 2, col 21) instead of closing tag 'incorrect'."}, 4, 21));
-
-    it('- nested incorrect close tag', () =>
-        validate(`<parent>
-                    <child>
-                       <self/>
-                       <self>
-                    </incorrect>
-                    <empty/>
-                  </parent>`,
-                 {InvalidTag: "Expected closing tag 'self' (opened in line 4, col 24) instead of closing tag 'incorrect'."}, 5, 21));
-    
-    it('- Extra text', () =>
-        validate(`<parent>
-                  </parent>extra`,
-                 {InvalidXml: "Extra text at the end"}, 2, 28));
-    
-    it('- Extra text', () =>
-        validate(`<parent><child attri= bute="true" /></parent>`,
-            {InvalidAttr: "Attribute 'attri' is without value."}, 1, 16));
-});
-
-describe("XML Validator with options", function () {
-    it('- Unpaired tags', () =>
-        validate(`<parent><extra></parent>`,
-        {InvalidTag: "Expected closing tag 'extra' (opened in line 1, col 9) instead of closing tag 'parent'."}, 1, 16));
-    
-    it('- Maarked Unpaired tags', () =>{
-        const result = XMLValidator.validate(`<parent><extra></parent>`, {
-            unpairedTags: ["extra"]
-        });
-        // console.log(result);
-        expect(result).toBeTrue();
-    });
-    it('- allowBooleanAttributes:false', () =>
-        validate(`<parent extra></parent>`,
-        {InvalidAttr: "boolean attribute 'extra' is not allowed."}, 1, 9));
-
-    it('- allowBooleanAttributes:true', () =>{
-        const result = XMLValidator.validate(`<parent extra></parent>`, {
-            allowBooleanAttributes: true
-        });
-        expect(result).toBeTrue();
-    });
-
 });

@@ -4,11 +4,11 @@ module.exports = [
     {
         context: __dirname,
         entry: "./src/parser.js",
-        mode: "production",
+        mode: "development",
         devtool: "source-map",
         output: {
             path: __dirname,
-            filename: "./lib/parser.min.js",
+            filename: "./lib/parser.js",
             library: "parser",
             libraryTarget: "var"
         },

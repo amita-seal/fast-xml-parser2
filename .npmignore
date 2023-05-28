@@ -2,6 +2,7 @@
 benchmark
 coverage
 spec
+!src/read.js
 static
 .*
 index.html
@@ -10,5 +11,3 @@ lib
 temp*
 *todo.md
 docs*
-.nyc_output
-USERs.md

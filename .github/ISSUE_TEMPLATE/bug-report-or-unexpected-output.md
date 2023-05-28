@@ -33,9 +33,4 @@ Include the code being used for parsing
 - [ ] Yes
 - [ ] No
 
-[Bookmark](https://github.com/NaturalIntelligence/fast-xml-parser/stargazers) this repository for further updates. Visit [SoloThought](https://solothought.com) to know about recent features.
-
-<!-- Love Fast-XML-Parser? Please consider supporting us:
-👉   https://opencollective.com/fast-xml-parser/donate
-👉   https://paypal.me/naturalintelligence 
-👉👉  https://github.com/sponsors/NaturalIntelligence -->
+[Bookmark](https://github.com/NaturalIntelligence/fast-xml-parser/stargazers) this repository for further updates.

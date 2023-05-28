@@ -10,9 +10,5 @@
     "benchmark": "^2.1.4",
     "xml2js": "^0.4.23"
   },
-  "typings": "src/parser.d.ts",
-  "dependencies": {
-    "fast-xml-parser": "^3.21.1",
-    "xmlbuilder2": "^3.0.2"
-  }
+  "typings": "src/parser.d.ts"
 }

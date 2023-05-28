@@ -1,6 +1,6 @@
 "use strict";
 
-const {XMLParser, XMLValidator} = require("../src/fxp");
+const validator = require("../src/validator");
 
 describe("XMLParser", function() {
     it("should validate big XML file", function() {
@@ -9,7 +9,7 @@ describe("XMLParser", function() {
         const fileNamePath = path.join(__dirname, "assets/large.xml");
         const svgData = fs.readFileSync(fileNamePath).toString();
 
-        const result = XMLValidator.validate(svgData);
+        const result = validator.validate(svgData);
         expect(result).toBe(true);
     });
 });

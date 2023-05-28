@@ -1,6 +1,6 @@
 "use strict";
 
-const {XMLParser, XMLValidator} = require("../src/fxp");
+const parser = require("../src/parser");
 
 describe("XMLParser", function() {
 
@@ -14,9 +14,8 @@ describe("XMLParser", function() {
         const options = {
           attributeNamePrefix : "@_"
         }
-        const parser = new XMLParser(options);
-        let result = parser.parse(xmlData);
-        
+
+        const result = parser.parse(xmlData, options);
         expect(result).toEqual(expected);
         // console.log({ expected})
         // console.log({ result })

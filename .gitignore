@@ -38,6 +38,3 @@ jspm_packages
 
 # iOS folder information
 .DS_Store
-
-benchmark/package-lock.json
-benchmark/node_modules

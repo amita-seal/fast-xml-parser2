@@ -1,10 +1,10 @@
 "use strict";
 
-const {XMLParser} = require("../src/fxp");
+const parser = require("../src/parser");
 
 describe("XMLParser with arrayMode enabled", function () {
-
-    const xmlData = `<report>
+    it("should parse all the tags as an array no matter how many occurrences excluding primitive values when arrayMode is set to true", function () {
+        const xmlData = `<report>
         <store>
             <region>US</region>
             <inventory>
@@ -29,31 +29,264 @@ describe("XMLParser with arrayMode enabled", function () {
         </store>
     </report>`;
 
-    it("should parse as Array for selective properties", function () {
+        const expected = {
+            "report": [
+                {
+                    "store": [
+                        {
+                            "region": "US",
+                            "inventory": [
+                                {
+                                    "item": [
+                                        {
+                                            "@_grade" : "A",
+                                            "name": "Banana",
+                                            "count": 200
+                                        },
+                                        {
+                                            "@_grade" : "B",
+                                            "name": "Apple",
+                                            "count": 100
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "region": "EU",
+                            "inventory": [
+                                {
+                                    "item": [
+                                        {
+                                            "name": "Banana",
+                                            "count": 100
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        const result = parser.parse(xmlData, {
+            arrayMode: true,
+            ignoreAttributes: false,
+        });
+
+        expect(result).toEqual(expected);
+    });
+
+    it("should parse all the tags as an array no matter how many occurrences when arrayMode is set to strict", function () {
+        const xmlData = `<report>
+        <store>
+            <region>US</region>
+            <inventory>
+                <item grade="A">
+                    <name>Banana</name>
+                    <count>200</count>
+                </item>
+                <item grade="B">
+                    <name>Apple</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+        <store>
+            <region>EU</region>
+            <inventory>
+                <item>
+                    <name>Banana</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+    </report>`;
 
         const expected = {
-            "report": {
-                "store": [
-                    {
-                        "region": "US",
-                        "inventory":{
+            "report": [
+                {
+                    "store": [
+                        {
+                            "region": ["US"],
+                            "inventory": [
+                                {
+                                    "item": [
+                                        {
+                                            "@_grade" : ["A"],
+                                            "name": ["Banana"],
+                                            "count": [200]
+                                        },
+                                        {
+                                            "@_grade" : ["B"],
+                                            "name": ["Apple"],
+                                            "count": [100]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "region": ["EU"],
+                            "inventory": [
+                                {
+                                    "item": [
+                                        {
+                                            "name": [ "Banana" ],
+                                            "count": [100]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        const result = parser.parse(xmlData, {
+            arrayMode: "strict",
+            ignoreAttributes: false,
+        });
+
+        expect(result).toEqual(expected);
+    });
+
+    it("should parse all the tags as an array that match arrayMode RegEx or return true as callback", function () {
+        const xmlData = `<report>
+        <store>
+            <region>US</region>
+            <inventory>
+                <item grade="A">
+                    <name>Banana</name>
+                    <count>200</count>
+                </item>
+                <item grade="B">
+                    <name>Apple</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+        <store>
+            <region>EU</region>
+            <inventory>
+                <item>
+                    <name>Banana</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+    </report>`;
+
+        const expected = {
+            "report":
+              {
+                  "store": [
+                      {
+                          "region": "US",
+                          "inventory": [
+                              {
+                                  "item": [
+                                      {
+                                          "@_grade": "A",
+                                          "name": "Banana",
+                                          "count": 200
+                                      },
+                                      {
+                                          "@_grade": "B",
+                                          "name": "Apple",
+                                          "count": 100
+                                      }
+                                  ]
+                              }
+                          ]
+                      },
+                      {
+                          "region": "EU",
+                          "inventory": [
+                              {
+                                  "item": [
+                                      {
+                                          "name": "Banana",
+                                          "count": 100
+                                      }
+                                  ]
+                              }
+                          ]
+                      }
+                  ]
+              }
+
+        };
+
+        const regExResult = parser.parse(xmlData, {
+            arrayMode: /inventory|item/,
+            ignoreAttributes: false,
+        });
+        expect(regExResult).toEqual(expected);
+
+        const cbExResult = parser.parse(xmlData, {
+            arrayMode: function (tagName) {
+                return ['inventory', 'item'].includes(tagName)
+            },
+            ignoreAttributes: false,
+        });
+        expect(cbExResult).toEqual(expected);
+    });
+
+    it("should parse all the tags as an array that match arrayMode callback with parent tag", function () {
+        const xmlData = `<report>
+        <store>
+            <region>US</region>
+            <inventory>
+                <item grade="A">
+                    <name>Banana</name>
+                    <count>200</count>
+                </item>
+                <item grade="B">
+                    <name>Apple</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+        <store>
+            <region>EU</region>
+            <inventory>
+                <item>
+                    <name>Banana</name>
+                    <count>100</count>
+                </item>
+            </inventory>
+        </store>
+    </report>`;
+
+        const expected = {
+            "report":
+              {
+                  "store": [
+                      {
+                          "region": "US",
+                          "inventory":
+                            {
                                 "item": [
                                     {
-                                        "@_grade" : "A",
+                                        "@_grade": "A",
                                         "name": "Banana",
                                         "count": 200
                                     },
                                     {
-                                        "@_grade" : "B",
+                                        "@_grade": "B",
                                         "name": "Apple",
                                         "count": 100
                                     }
                                 ]
                             }
-                    },
-                    {
-                        "region": "EU",
-                        "inventory": {
+                      },
+                      {
+                          "region": "EU",
+                          "inventory":
+                            {
                                 "item": [
                                     {
                                         "name": "Banana",
@@ -61,197 +294,21 @@ describe("XMLParser with arrayMode enabled", function () {
                                     }
                                 ]
                             }
-                    }
-                ]
-            }
-        };
-
-        const alwaysArray = [
-            "report.store.inventory.item"
-        ];
-        const options = {
-            ignoreAttributes: false,
-            isArray: (tagName, jpath, isLeafNode) => { 
-                // console.log(tagName, jpath, isLeafNode) 
-                if( alwaysArray.indexOf(jpath) !== -1) return true;
+                      }
+                  ]
               }
+
         };
 
-        const parser = new XMLParser(options);
-        const result = parser.parse(xmlData);
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
-    });
-    it("should parse only leaf nodes as Array but not attributes if set", function () {
-
-        const expected = {
-            "report": {
-                "store": [
-                    {
-                        "region": ["US"],
-                        "inventory":{
-                                "item": [
-                                    {
-                                        "@_grade" : "A",
-                                        "name": ["Banana"],
-                                        "count": [200]
-                                    },
-                                    {
-                                        "@_grade" : "B",
-                                        "name": ["Apple"],
-                                        "count": [100]
-                                    }
-                                ]
-                            }
-                    },
-                    {
-                        "region": ["EU"],
-                        "inventory": {
-                                "item": {
-                                        "name": ["Banana"],
-                                        "count": [100]
-                                    }
-                            }
-                    }
-                ]
-            }
-        };
-
-        const options = {
+        const cbExResult = parser.parse(xmlData, {
+            arrayMode: function (tagName, parentTagName) {
+                return parentTagName === 'inventory';
+            },
             ignoreAttributes: false,
-            isArray: (tagName, jpath, isLeafNode, isAttribute) => { 
-                if(isLeafNode === true && isAttribute !== true) return true;
-              }
-        };
-        const parser = new XMLParser(options);
-        const result = parser.parse(xmlData);
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
+        });
+
+        expect(cbExResult).toEqual(expected);
     });
-    it("should parse only leaf nodes and attributes as Array if set", function () {
-
-        const expected = {
-            "report": {
-                "store": [
-                    {
-                        "region": ["US"],
-                        "inventory":{
-                                "item": [
-                                    {
-                                        "@_grade" : ["A"],
-                                        "name": ["Banana"],
-                                        "count": [200]
-                                    },
-                                    {
-                                        "@_grade" : ["B"],
-                                        "name": ["Apple"],
-                                        "count": [100]
-                                    }
-                                ]
-                            }
-                    },
-                    {
-                        "region": ["EU"],
-                        "inventory": {
-                                "item": {
-                                        "name": ["Banana"],
-                                        "count": [100]
-                                    }
-                            }
-                    }
-                ]
-            }
-        };
-
-        const options = {
-            ignoreAttributes: false,
-            isArray: (tagName, jpath, isLeafNode, isAttribute) => { 
-                if(isLeafNode === true) return true;
-              }
-        }
-        const parser = new XMLParser(options);
-        const result = parser.parse(xmlData);
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
-    });
-
-    it("should parse leaf tags with zero or false value correctly in arrayMode", function () {
-        const xmlDataExample = `
-            <report>
-                <value>0</value>
-                <isNew>false</isNew>
-                <isReport>true</isReport>
-            </report>`
-
-        const expected = {
-            "report": 
-                [
-                    {
-                        "value": 0,
-                        "isNew": false,
-                        "isReport": true
-                    }
-                ]
-        };
-
-        const options = {
-            ignoreAttributes: false,
-            isArray: (tagName, jpath, isLeafNode, isAttribute) => { 
-                if(!isLeafNode) return true;
-              }
-        }
-        const parser = new XMLParser(options);
-        const result = parser.parse(xmlDataExample);
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
-    });
-
-    it("should parse only attributes as Array if set", function () {
-
-        const expected = {
-            "report": {
-                "store": [
-                    {
-                        "region": "US",
-                        "inventory":{
-                                "item": [
-                                    {
-                                        "@_grade" : ["A"],
-                                        "name": "Banana",
-                                        "count": 200
-                                    },
-                                    {
-                                        "@_grade" : ["B"],
-                                        "name": "Apple",
-                                        "count": 100
-                                    }
-                                ]
-                            }
-                    },
-                    {
-                        "region": "EU",
-                        "inventory": {
-                                "item": {
-                                        "name": "Banana",
-                                        "count": 100
-                                    }
-                            }
-                    }
-                ]
-            }
-        };
-        const options = {
-            ignoreAttributes: false,
-            isArray: (tagName, jpath, isLeafNode, isAttribute) => { 
-                if(isAttribute === true) return true;
-              }
-        }
-        const parser = new XMLParser(options);
-        const result = parser.parse(xmlData);
-        // console.log(JSON.stringify(result,null,4));
-        expect(result).toEqual(expected);
-    });
-
 });
 
 
